@@ -308,5 +308,11 @@ sid = cookies.sid
 uid = cookies.uid
 ```
 
+## Analytics
+
+If you want to run SQL queries on the JSON dataset, you can use a query engine like [DuckDB](https://duckdb.org/).
+
+Sample queries can be found [here](sql/sample_queries.sql).
+
 TODO:
 - Add story author and title to post stats

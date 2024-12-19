@@ -26,6 +26,13 @@ common_mode_attrs = {
         "filename_suffix": "post_referrers.json",
         "is_aggregated": True,
     },
+    "earnings_breakdown": {
+        "title": "Earnings Per Article Data",
+        "type": "earnings_breakdown",
+        "folder": "post_earnings_breakdown",
+        "filename_suffix": "post_earnings_breakdown.json",
+        "is_aggregated": False,
+    },
 }
 
 user_mode_attrs = {
@@ -81,7 +88,7 @@ def get_stats(sg, mode, now, articles=None):
 
     now_json = dt_formatter(now, "json")
 
-    if mode in ["events", "articles"]:
+    if mode in ["events", "articles", "earnings_breakdown"]:
         period_start, period_stop = map(partial(dt_formatter, output="json"), [sg.start, sg.stop])
     # TODO - add if-statement to make sure that modes that need articles have articles passed in as arg
     # if mode in ['articles', 'referrals'] and not articles: raise someError
@@ -116,9 +123,13 @@ def get_stats(sg, mode, now, articles=None):
 
         data = sg.get_all_story_stats(articles, type_="referrer")
 
+    elif mode == "earnings_breakdown":
+
+        data = sg.get_all_story_stats(articles, type_=mode)
+
     else:
         # TODO remove hardcoding from this message - make choice list dynamic from keys
-        raise ValueError('"mode" param must be of choice {summary, events, story_overview, articles, referrers}')
+        raise ValueError('"mode" param must be of choice {summary, events, story_overview, articles, referrers, earnings_breakdown}')
 
     if extras["is_aggregated"]:
         extras = {"timestamp": now_json, "type": extras["type"]}

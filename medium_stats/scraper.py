@@ -2,7 +2,6 @@ import json
 import re
 import traceback
 from datetime import datetime
-from datetime import timedelta
 from datetime import timezone
 from functools import partial
 
@@ -101,6 +100,421 @@ stats_post_ref_q = """\
     }
 """
 
+stats_earnings_breakdown = """query useStatsPostNewChartDataQuery($postId: ID!, $startAt: Long!, $endAt: Long!, $postStatsDailyBundleInput: PostStatsDailyBundleInput!) {
+  post(id: $postId) {
+    id
+    earnings {
+      dailyEarnings(startAt: $startAt, endAt: $endAt) {
+        ...newBucketTimestamps_dailyPostEarning
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+  postStatsDailyBundle(postStatsDailyBundleInput: $postStatsDailyBundleInput) {
+    buckets {
+      ...newBucketTimestamps_postStatsDailyBundleBucket
+      __typename
+    }
+    __typename
+  }
+}
+
+fragment newBucketTimestamps_dailyPostEarning on DailyPostEarning {
+  periodStartedAt
+  amount
+  __typename
+}
+
+fragment newBucketTimestamps_postStatsDailyBundleBucket on PostStatsDailyBundleBucket {
+  dayStartsAt
+  membershipType
+  readersThatReadCount
+  readersThatViewedCount
+  readersThatClappedCount
+  readersThatRepliedCount
+  readersThatHighlightedCount
+  readersThatInitiallyFollowedAuthorFromThisPostCount
+  __typename
+}
+"""
+
+stats_lifetime_earnings = """query UserLifetimeStoryStatsPostsQuery($username: ID!, $first: Int!, $after: String!, $orderBy: UserPostsOrderBy, $filter: UserPostsFilter) {
+  user(username: $username) {
+    id
+    postsConnection(
+      first: $first
+      after: $after
+      orderBy: $orderBy
+      filter: $filter
+    ) {
+      __typename
+      edges {
+        ...UserLifetimeStoryStats_relayPostEdge
+        __typename
+      }
+      pageInfo {
+        endCursor
+        hasNextPage
+        __typename
+      }
+    }
+    __typename
+  }
+}
+
+fragment UserLifetimeStoryStats_relayPostEdge on RelayPostEdge {
+  node {
+    id
+    firstPublishedAt
+    ...LifetimeStoryStats_post
+    __typename
+  }
+  __typename
+}
+
+fragment LifetimeStoryStats_post on Post {
+  id
+  ...StoryStatsTable_post
+  ...MobileStoryStatsTable_post
+  __typename
+}
+
+fragment StoryStatsTable_post on Post {
+  ...StoryStatsTableRow_post
+  __typename
+  id
+}
+
+fragment StoryStatsTableRow_post on Post {
+  id
+  firstBoostedAt
+  isLocked
+  totalStats {
+    views
+    reads
+    __typename
+  }
+  earnings {
+    total {
+      currencyCode
+      nanos
+      units
+      __typename
+    }
+    __typename
+  }
+  ...TablePostInfos_post
+  ...usePostStatsUrl_post
+  __typename
+}
+
+fragment TablePostInfos_post on Post {
+  id
+  title
+  readingTime
+  isLocked
+  visibility
+  ...usePostUrl_post
+  ...Star_post
+  ...PostPreviewByLine_post
+  __typename
+}
+
+fragment usePostUrl_post on Post {
+  id
+  creator {
+    ...userUrl_user
+    __typename
+    id
+  }
+  collection {
+    id
+    domain
+    slug
+    __typename
+  }
+  isSeries
+  mediumUrl
+  sequence {
+    slug
+    __typename
+  }
+  uniqueSlug
+  __typename
+}
+
+fragment userUrl_user on User {
+  __typename
+  id
+  customDomainState {
+    live {
+      domain
+      __typename
+    }
+    __typename
+  }
+  hasSubdomain
+  username
+}
+
+fragment Star_post on Post {
+  id
+  creator {
+    id
+    __typename
+  }
+  __typename
+}
+
+fragment PostPreviewByLine_post on Post {
+  creator {
+    ...PostPreviewByLineAuthor_user
+    __typename
+    id
+  }
+  collection {
+    ...PostPreviewByLineCollection_collection
+    __typename
+    id
+  }
+  __typename
+  id
+}
+
+fragment PostPreviewByLineAuthor_user on User {
+  ...UserMentionTooltip_user
+  ...UserAvatar_user
+  ...UserLinkWithPopover_user
+  __typename
+  id
+}
+
+fragment UserMentionTooltip_user on User {
+  id
+  name
+  bio
+  ...UserAvatar_user
+  ...UserFollowButton_user
+  ...useIsVerifiedBookAuthor_user
+  __typename
+}
+
+fragment UserAvatar_user on User {
+  __typename
+  id
+  imageId
+  membership {
+    tier
+    __typename
+    id
+  }
+  name
+  username
+  ...userUrl_user
+}
+
+fragment UserFollowButton_user on User {
+  ...UserFollowButtonSignedIn_user
+  ...UserFollowButtonSignedOut_user
+  __typename
+  id
+}
+
+fragment UserFollowButtonSignedIn_user on User {
+  id
+  name
+  __typename
+}
+
+fragment UserFollowButtonSignedOut_user on User {
+  id
+  ...SusiClickable_user
+  __typename
+}
+
+fragment SusiClickable_user on User {
+  ...SusiContainer_user
+  __typename
+  id
+}
+
+fragment SusiContainer_user on User {
+  ...SignInOptions_user
+  ...SignUpOptions_user
+  __typename
+  id
+}
+
+fragment SignInOptions_user on User {
+  id
+  name
+  __typename
+}
+
+fragment SignUpOptions_user on User {
+  id
+  name
+  __typename
+}
+
+fragment useIsVerifiedBookAuthor_user on User {
+  verifications {
+    isBookAuthor
+    __typename
+  }
+  __typename
+  id
+}
+
+fragment UserLinkWithPopover_user on User {
+  name
+  ...useIsVerifiedBookAuthor_user
+  ...userUrl_user
+  ...UserMentionTooltip_user
+  __typename
+  id
+}
+
+fragment PostPreviewByLineCollection_collection on Collection {
+  ...CollectionAvatar_collection
+  ...CollectionTooltip_collection
+  ...CollectionLinkWithPopover_collection
+  __typename
+  id
+}
+
+fragment CollectionAvatar_collection on Collection {
+  name
+  avatar {
+    id
+    __typename
+  }
+  ...collectionUrl_collection
+  __typename
+  id
+}
+
+fragment collectionUrl_collection on Collection {
+  id
+  domain
+  slug
+  __typename
+}
+
+fragment CollectionTooltip_collection on Collection {
+  id
+  name
+  slug
+  description
+  subscriberCount
+  customStyleSheet {
+    header {
+      backgroundImage {
+        id
+        __typename
+      }
+      __typename
+    }
+    __typename
+    id
+  }
+  ...CollectionAvatar_collection
+  ...CollectionFollowButton_collection
+  ...EntityPresentationRankedModulePublishingTracker_entity
+  __typename
+}
+
+fragment CollectionFollowButton_collection on Collection {
+  __typename
+  id
+  name
+  slug
+  ...collectionUrl_collection
+  ...SusiClickable_collection
+}
+
+fragment SusiClickable_collection on Collection {
+  ...SusiContainer_collection
+  __typename
+  id
+}
+
+fragment SusiContainer_collection on Collection {
+  name
+  ...SignInOptions_collection
+  ...SignUpOptions_collection
+  __typename
+  id
+}
+
+fragment SignInOptions_collection on Collection {
+  id
+  name
+  __typename
+}
+
+fragment SignUpOptions_collection on Collection {
+  id
+  name
+  __typename
+}
+
+fragment EntityPresentationRankedModulePublishingTracker_entity on RankedModulePublishingEntity {
+  __typename
+  ... on Collection {
+    id
+    __typename
+  }
+  ... on User {
+    id
+    __typename
+  }
+}
+
+fragment CollectionLinkWithPopover_collection on Collection {
+  name
+  ...collectionUrl_collection
+  ...CollectionTooltip_collection
+  __typename
+  id
+}
+
+fragment usePostStatsUrl_post on Post {
+  id
+  creator {
+    id
+    username
+    __typename
+  }
+  __typename
+}
+
+fragment MobileStoryStatsTable_post on Post {
+  id
+  firstBoostedAt
+  isLocked
+  totalStats {
+    reads
+    views
+    __typename
+  }
+  earnings {
+    total {
+      currencyCode
+      nanos
+      units
+      __typename
+    }
+    __typename
+  }
+  ...TablePostInfos_post
+  ...usePostStatsUrl_post
+  __typename
+}
+"""
+
 
 class StatGrabberBase:
     def __init__(self, sid, uid, start, stop, now=None, already_utc=False):
@@ -157,18 +571,18 @@ class StatGrabberBase:
 
     def get_article_ids(self, summary_stats_json):
 
-        ids = [a["postId"] for a in summary_stats_json]
+        ids = [a["node"]["id"] for a in summary_stats_json]
         self.articles = ids
         return ids
 
-    def get_story_stats(self, post_id, type_="view_read"):
-
-        if type_ not in ["view_read", "referrer"]:
-            raise ValueError('"type" param must be either "view_read" or "referrer"')
+    def get_story_stats(self, post_id, username=None, type_="view_read"):
 
         gql_endpoint = "https://medium.com/_/graphql"
 
-        post_data = {"variables": {"postId": post_id}}
+        if type_ == "lifetime_earnings" and username:
+            post_data = {"variables": {"username": username}}
+        else:
+            post_data = {"variables": {"postId": post_id}}
 
         if type_ == "view_read":
             post_data["operationName"] = "StatsPostChart"
@@ -178,6 +592,20 @@ class StatGrabberBase:
         elif type_ == "referrer":
             post_data["operationName"] = "StatsPostReferrersContainer"
             post_data["query"] = stats_post_ref_q
+        elif type_ == "earnings_breakdown":
+            post_data["operationName"] = "useStatsPostNewChartDataQuery"
+            v = post_data["variables"]
+            v["startAt"], v["endAt"] = self.start_unix, self.stop_unix
+            v["postStatsDailyBundleInput"] = {"fromDayStartsAt": self.start_unix, "toDayStartsAt": self.stop_unix,
+                                              "postId": post_id}
+            post_data["query"] = stats_earnings_breakdown
+        elif type_ == "lifetime_earnings":
+            post_data["operationName"] = "UserLifetimeStoryStatsPostsQuery"
+            v = post_data["variables"]
+            v["filter"] = {"published": True}
+            v["first"] = 1000
+            v["after"] = ""
+            post_data["query"] = stats_lifetime_earnings
 
         r = self.session.post(gql_endpoint, json=post_data)
 
@@ -189,7 +617,12 @@ class StatGrabberBase:
 
         for post in post_ids:
             data = self.get_story_stats(post, type_=type_)
-            container["data"]["post"] += [data["data"]["post"]]
+            if type_ == "earnings_breakdown":
+                post_details = data["data"]["post"]
+                post_details["postStatsDailyBundle"] = data["data"]["postStatsDailyBundle"]
+                container["data"]["post"] += [post_details]
+            else:
+                container["data"]["post"] += [data["data"]["post"]]
 
         return container
 
@@ -211,7 +644,6 @@ class StatGrabberBase:
 
 class StatGrabberUser(StatGrabberBase):
     def __init__(self, username, sid, uid, start, stop, now=None, already_utc=False):
-
         self.username = str(username)
         self.slug = str(username)
         super().__init__(sid, uid, start, stop, now, already_utc)
@@ -222,20 +654,8 @@ class StatGrabberUser(StatGrabberBase):
         return f"username: {self.username} // uid: {self.uid}"
 
     def get_summary_stats(self, events=False, limit=50, **kwargs):
-        params = {"filter": "not-response", "limit": limit, **kwargs}
-        if events:
-            response = self._fetch(self.totals_endpoint)
-        else:
-            response = self._fetch(self.stats_url, params=params)
-
-        data = self._decode_json(response)
-
-        if data.get("paging", {}).get("next"):
-            next_cursor_idx = data["paging"]["next"]["to"]
-            next_page = self.get_summary_stats(limit=limit, to=next_cursor_idx)
-            data["value"].extend(next_page)
-
-        return data["value"]
+        return StatGrabberBase.get_story_stats(self, "", self.username, "lifetime_earnings")["data"]["user"]["postsConnection"][
+            "edges"]
 
 
 class StatGrabberPublication(StatGrabberBase):

@@ -10,7 +10,7 @@ from inspect import cleandoc
 from medium_stats.utils import make_utc_explicit
 from medium_stats.utils import valid_date
 
-USER_MODE_CHOICES = ["summary", "events", "articles", "referrers"]
+USER_MODE_CHOICES = ["summary", "events", "articles", "referrers", "earnings_breakdown"]
 PUB_MODE_CHOICES = ["events", "story_overview", "articles", "referrers"]
 
 valid_date = partial(valid_date, error=argparse.ArgumentTypeError)
@@ -105,7 +105,7 @@ def get_argparser():
     medium-stats scrape_user -u USERNAME [--output_dir DIR] \
     (--creds PATH | (--sid SID --uid UID)) \
     (--all | [--start PERIOD_START] [--end PERIOD END]) [--is-utc]\
-    [--mode {summary, events, articles, referrers}]"""
+    [--mode {summary, events, articles, referrers, earnings_breakdown}]"""
     usage = usage.replace("    ", "")
 
     scrape_user = subparser.add_parser("scrape_user", usage=usage, help="get user statistics")
